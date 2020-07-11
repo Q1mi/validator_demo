@@ -115,6 +115,8 @@ func SignUpParamStructLevelValidation(sl validator.StructLevel) {
 	}
 }
 
+// removeTopStruct 去除字段名中的结构体名称标识
+// refer from:https://github.com/go-playground/validator/issues/633#issuecomment-654382345
 func removeTopStruct(fields map[string]string) map[string]string {
 	res := map[string]string{}
 	for field, err := range fields {
@@ -122,9 +124,6 @@ func removeTopStruct(fields map[string]string) map[string]string {
 	}
 	return res
 }
-
-// NOTES: using the same tag name as an existing function
-//        will overwrite the existing one
 
 func main() {
 	if err := InitTrans("zh"); err != nil {
@@ -136,22 +135,23 @@ func main() {
 
 	r.POST("/signup", func(c *gin.Context) {
 		var u SignUpParam
-		if err := c.ShouldBind(&u); err != nil {
-			// 获取validator.ValidationErrors类型的errors
-			errs, ok := err.(validator.ValidationErrors)
-			if !ok {
-				// 非validator.ValidationErrors类型错误直接返回
-				c.JSON(http.StatusOK, gin.H{
-					"msg": err.Error(),
-				})
-				return
-			}
-			// validator.ValidationErrors类型错误则进行翻译
-			c.JSON(http.StatusOK, gin.H{
-				"msg": removeTopStruct(errs.Translate(trans)),
-			})
-			return
-		}
+if err := c.ShouldBind(&u); err != nil {
+	// 获取validator.ValidationErrors类型的errors
+	errs, ok := err.(validator.ValidationErrors)
+	if !ok {
+		// 非validator.ValidationErrors类型错误直接返回
+		c.JSON(http.StatusOK, gin.H{
+			"msg": err.Error(),
+		})
+		return
+	}
+	// validator.ValidationErrors类型错误则进行翻译
+	// 并使用removeTopStruct函数去除字段名中的结构体名称标识
+	c.JSON(http.StatusOK, gin.H{
+		"msg": removeTopStruct(errs.Translate(trans)),
+	})
+	return
+}
 		// 保存入库等操作...
 
 		c.JSON(http.StatusOK, "success")
